@@ -7,7 +7,7 @@ Process frames, segment objects, track them over time, and save the results in a
 
 ## Сapabilities 
 
-- Object detection/classification on each frame (using pre-trained YOLOv8 model):
+- Object detection/classification on each frame (using pre-trained YOLO-seg model):
   - **Bubbles**
   - **Submerged jets**
   - **Fiber** (ignored)
