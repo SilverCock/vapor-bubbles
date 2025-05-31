@@ -1,4 +1,7 @@
 #Это что из себя выдавил GPT, надо разобраться с его работой, может что-то подправить
+
+#whole load of bullshit
+
 import os
 import cv2
 import numpy as np
