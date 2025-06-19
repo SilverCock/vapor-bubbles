@@ -35,6 +35,7 @@ records = []
 
 if not cap.isOpened():
     print("Error opening video file")
+    exit()
 
 # Preprocess
 def preprocess(frame):
@@ -80,6 +81,7 @@ while cap.isOpened():
 
     except Exception as e:
         print(f"Error on frame {frame_idx}: {e}")
+        exit()
 
     #progress log
     if total_frames > 0 and frame_idx % max(1, total_frames // 10) == 0:
@@ -97,5 +99,7 @@ if records:
         print(f"Tracking results saved successfully to: {OUTPUT_DIR}")
     except Exception as e:
         print(f"Failed to save CSV: {e}")
+        exit()
 else:
     print("No tracking data collected — CSV file was not created")
+    exit()
