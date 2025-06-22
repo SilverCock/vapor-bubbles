@@ -6,9 +6,9 @@ import torch
 from ultralytics import YOLO
 
 # Parameters
-MODEL_DIR = "\\path\\to\\seg\\model.pt"
-VIDEO_DIR = "\\path\\to\\source\\video.avi" #must load 200x200 video of fiber, not raw 1024x200 video
-OUTPUT_DIR = "\\path\\to\\output\\file.csv"
+MODEL_DIR = "C:\\Users\\knja3\\runs\\segment\\train6\\weights\\best.pt"
+VIDEO_DIR = "G:\\experement\\filtered\\2_wT_video\\2_wT_1.avi" #must load 200x200 video of fiber, not raw 1024x200 video
+OUTPUT_DIR = "G:\\experement\\result_stats\\2_wT_stat\\2_wT_1_stat.csv"
 
 model = YOLO(MODEL_DIR)
 
@@ -36,11 +36,6 @@ records = []
 if not cap.isOpened():
     print("Error opening video file")
     exit()
-
-# Preprocess
-def preprocess(frame):
-    #someone did not commit his preprocess function
-    return frame
     
 #main loop
 while cap.isOpened():
@@ -49,35 +44,31 @@ while cap.isOpened():
         break
     
     try:
-        filtered_frame = preprocess(frame)
+        results = model.track(source=frame, persist=True, imgsz=224, device=0, verbose=False, tracker="botsort.yaml", show=True)
 
-        results = model.track(source=filtered_frame, persist=True, imgsz=200, device=0, stream=True, verbose=False)
-    
-        if results and results[0].boxes is not None:
+        if results is not None and len(results) > 0:
             r = results[0]
-
-            for i in range(len(r.boxes)):
-
+            
+            if r.boxes is not None and r.boxes.id is not None:
+ 
                 #working with bbox -- get ID, class, center coordinates
-                if r.boxes and r.boxes.data is not None:
+                for i in range(len(r.boxes.id)):
                     obj_id = int(r.boxes.id[i])
                     cls = int(r.boxes.cls[i])
                     x1, y1, x2, y2 = r.boxes.xyxy[i].cpu().numpy()
                     cx = (x1 + x2) / 2
                     cy = (y1 + y2) / 2
-                else:
-                    obj_id, cls, cx, cy = None, None, None, None
 
                 #working with mask -- get area an radius
-                if r.masks and r.masks.data is not None:
-                    mask = r.masks.data[i].cpu().numpy()
-                    area = np.sum(mask)
-                    radius = np.sqrt(area / np.pi)
-                else:
-                    area, radius = None, None
+                    if r.masks is not None and r.masks.data is not None:
+                        mask = r.masks.data[i].cpu().numpy()
+                        area = np.sum(mask)
+                        radius = np.sqrt(area / np.pi)
+                    else:
+                        area, radius = None, None
 
                 #udpating records array 
-                records.append({"id": obj_id, "frame": frame_idx, "cx": cx, "cy": cy, "area": area, "eq_radius": radius})
+                    records.append({"id": obj_id, "frame": frame_idx, "cx": cx, "cy": cy, "area": area, "eq_radius": radius})
 
     except Exception as e:
         print(f"Error on frame {frame_idx}: {e}")
