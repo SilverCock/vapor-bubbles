@@ -1,0 +1,83 @@
+import matplotlib.pyplot as plt
+import csv
+
+frame2d = {} # Тут времена по индексам
+rad2d={} # словарь индексов и всехралиусов
+freq2d = {} # нужные времена при ид
+ind = [] # все индексы
+
+with open(r'5_wT_8_stat.csv', 'r') as file:
+    reader = csv.reader(file)
+    for row in reader:
+        if not row:
+            continue
+        penultimate = row[-1].strip()
+        first = row[0].strip()
+        second = row[1].strip()
+        try:
+            num = float(penultimate.replace(',', ''))
+            id = int(float(first)) 
+            sec = float(second.replace(',',''))
+            ind.append(id)
+            if id not in rad2d:
+                rad2d[id] = []
+            if id not in frame2d:
+                frame2d[id] = []
+            rad2d[id].append(num)
+            frame2d[id].append(second)
+
+        except ValueError:
+            print(f"Пропущено нечисловое значение: {penultimate}") 
+
+freqrad = {}
+
+for id in rad2d.keys():
+    if id in frame2d and id in rad2d:
+        maxrad = max(rad2d[id])
+        maxind = rad2d[id].index(maxrad) #смотрим индекс максимального радиуса на данном индексе
+        maxframe = frame2d[id][maxind]      #смотрим фрейм, когда пузырь достиг радиуса    
+        freqrad[id] = {
+            'max_radius': maxrad, # на каждом ид есть максрадиус и фрейм
+            'time': maxframe
+        }
+
+plt.figure(figsize=(10, 6)) # визуализация
+plt.scatter(
+    x=[v['time'] for v in freqrad.values()],
+    y=[v['max_radius'] for v in freqrad.values()],
+    alpha=0.6
+)
+plt.xticks([])
+plt.xlabel('time')
+plt.ylabel('rmax')
+plt.title('freq')
+plt.savefig(r'freq.png')
+plt.grid(True)
+plt.show()
+
+
+
+
+
+
+'''
+for key in frame2d:                              #Мы сопоставляем айдишнику пузыря момент времени когда он максимально раздулся
+    for time in range(len(frame2d[key])):
+        if frame2d[key][time] == rad[time]:
+            frame.append(time)
+
+for key, radius in zip(frame, rad):    #Получили словарь с максимальными радиусами и моментами времени, когда эти радиусы появились
+    if key not in freq2d:
+        freq2d[key]=[]
+    freq2d[key].append(radius)
+
+for id in ind:
+    for i in range(len(maxrad2d[key])):
+        if maxrad2d[id][i]==rad2d[id]:
+            place.append(i)
+'''
+
+
+
+
+
