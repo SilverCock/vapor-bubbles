@@ -1,4 +1,4 @@
-# Data processing and analysis for laser-induced vapor bubbles in subcooled water
+# Надо переписать эту хуйню ей-богу
 
 Automatic detection and tracking of laser-induced vapor bubbles and submerged jets in high-speed video capture (up to 100 000 fps).
 Process frames, segment objects, track them over time, and save the results in a CSV file.
