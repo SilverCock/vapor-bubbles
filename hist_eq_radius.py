@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 rad2d = {} #все ралиусы с ид
 rad = [] #только максимальный радиус каждого ид
 
-with open(r'C:/Users/1/Documents/prog/2_wT_1_stat.csv', 'r') as file:
+with open(r'G:\\experement\\result_stats\\2_wT_stat\\2_wT_3_stat.csv', 'r') as file:
     reader = csv.reader(file)
     for row in reader:
         if not row:
