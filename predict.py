@@ -4,14 +4,14 @@ import numpy as np
 from ultralytics import YOLO
 
 # Параметры
-model_path = 'C:\\Users\\knja3\\runs\\segment\\train6\\weights\\best.pt'  # путь к модели
-source_dir = 'G:\\experement\\filtered\\frames'                             # папка с изображениями
+model_path = 'C:\\Users\\knja3\\runs\\segment\\train9\\weights\\best.pt'  # путь к модели
+source_dir = 'G:\\experement\\35_t\\dataset\\filter 3'                             # папка с изображениями
 output_dir = 'C:\\Users\\knja3\\runs\\valraw'                            # папка для сохранения результатов
 
 os.makedirs(output_dir, exist_ok=True)
 
 model = YOLO(model_path)
-results = model.predict(source=source_dir, save=False, imgsz=200, device=0, verbose=False, stream=True)
+results = model.predict(source=source_dir, save=False, imgsz=480, device=0, verbose=False, stream=True, conf=0.6)
 
 for r in results:
     im_path = r.path
@@ -42,4 +42,4 @@ for r in results:
     filename = os.path.basename(im_path)
     cv2.imwrite(os.path.join(output_dir, filename), im)
 
-print(f"Визуализация завершена. Файлы сохранены в: {output_dir}")
+print(f"Images saved to: {output_dir}")

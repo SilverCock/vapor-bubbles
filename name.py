@@ -1,7 +1,7 @@
 import os
 import json
 
-image_dir = 'H:\\dataset'  # замени на нужный путь
+image_dir = 'G:\\experement\\35_t\\dataset\\raw'  # замени на нужный путь
 output_dir = image_dir  # можно изменить
 
 for filename in os.listdir(image_dir):
@@ -17,8 +17,8 @@ for filename in os.listdir(image_dir):
                 "shapes": [],
                 "imagePath": filename,
                 "imageData": None,
-                "imageHeight": 128,  # укажи реальные значения
-                "imageWidth": 128
+                "imageHeight": 200,  # укажи реальные значения
+                "imageWidth": 300
             }
             with open(json_path, 'w') as f:
                 json.dump(empty_annotation, f, indent=4)
