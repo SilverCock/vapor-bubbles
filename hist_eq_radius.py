@@ -26,6 +26,7 @@ rad = [max(values) for values in rad2d.values()] #заполняем макси�
 if not rad:
     print("Нет данных для построения гистограммы")
     exit()
+    
 plt.figure(figsize=(12, 7))
 counts, bins, patches = plt.hist(
     rad,
