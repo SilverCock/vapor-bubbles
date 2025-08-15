@@ -1,96 +1,107 @@
-import os
 import cv2
 import numpy as np
-import pandas as pd
-import torch
+from pathlib import Path
 from ultralytics import YOLO
+import pandas as pd
 
-# Parameters
-MODEL_DIR = "best.pt"
-VIDEO_DIR = "2_wT_1.avi" 
-OUTPUT_DIR = "2_wT_1_stat.csv"
+# === Параметры фильтров ===
+median_ksize = 3
+gaussian_ksize = (3, 3)
+gaussian_sigma = 0
+sharpen_strength = 1.1
 
-model = YOLO(MODEL_DIR)
+# === Пути ===
+video_dir = Path(r"D:\\videos")        # Папка с входными AVI
+output_dir = Path(r"D:\\output_stats") # Папка для сохранения CSV
+model_path = Path(r"D:\\best.pt")      # Модель YOLO
 
-#create output file
-try:
-    os.makedirs(os.path.dirname(OUTPUT_DIR), exist_ok=True)
-    print(f"Output directory verified: {os.path.dirname(OUTPUT_DIR)}")
-except Exception as e:
-    print(f"Failed to verify output directory: {e}")
+output_dir.mkdir(parents=True, exist_ok=True)
 
-# load video
-cap = cv2.VideoCapture(VIDEO_DIR)
-if not cap.isOpened():
-    print(f"Error opening video file: {VIDEO_DIR}")
-    exit()
+# === Загрузка модели ===
+model = YOLO(model_path)
 
-# get total number of frames
-total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-print(f"Video loaded successfully. Total frames: {total_frames}")
+# === Обработка всех видео ===
+for video_path in video_dir.glob("*.avi"):
+    print(f"Processing: {video_path.name}")
 
+    cap = cv2.VideoCapture(str(video_path))
+    if not cap.isOpened():
+        print(f"Cannot open {video_path}")
+        continue
 
-frame_idx = 0
-records = []
+    # Постобработка ID
+    last_seen_frame = {}
+    temp_ids = {}   # временные ID {orig_id: (start_frame, tentative_id)}
+    id_map = {}     # постоянные ID {orig_id: new_id}
+    next_new_id = 1
 
-if not cap.isOpened():
-    print("Error opening video file")
-    exit()
-    
-#main loop
-while cap.isOpened():
-    success, frame = cap.read()
-    if not success:
-        break
-    
-    try:
-        results = model.track(source=frame, persist=True, imgsz=224, device=0, verbose=False, tracker="botsort.yaml", show=True)
+    frame_idx = 0
+    data_records = []  # список строк для CSV
 
-        if results is not None and len(results) > 0:
-            r = results[0]
-            
-            if r.boxes is not None and r.boxes.id is not None:
- 
-                #working with bbox -- get ID, class, center coordinates
-                for i in range(len(r.boxes.id)):
-                    obj_id = int(r.boxes.id[i])
-                    cls = int(r.boxes.cls[i])
-                    x1, y1, x2, y2 = r.boxes.xyxy[i].cpu().numpy()
-                    cx = (x1 + x2) / 2
-                    cy = (y1 + y2) / 2
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
 
-                #working with mask -- get area an radius
-                    if r.masks is not None and r.masks.data is not None:
-                        mask = r.masks.data[i].cpu().numpy()
-                        area = np.sum(mask)
-                        radius = np.sqrt(area / np.pi)
+        # --- Фильтры ---
+        frame_f = cv2.medianBlur(frame, median_ksize)
+        frame_f = cv2.GaussianBlur(frame_f, gaussian_ksize, gaussian_sigma)
+        kernel_sharpening = np.array([[0, -1, 0],
+                                      [-1, 5, -1],
+                                      [0, -1, 0]], dtype=np.float32) * sharpen_strength
+        frame_f = cv2.filter2D(frame_f, -1, kernel_sharpening)
+
+        # --- YOLO tracking ---
+        results = model.track(frame_f, tracker="botsort.yaml", persist=True, verbose=False)
+
+        if results and len(results) > 0:
+            res = results[0]
+            if res.masks is not None and res.boxes.id is not None:
+                for seg, tid in zip(res.masks.xy, res.boxes.id):
+                    if tid is None:
+                        continue
+
+                    orig_id = int(tid)
+
+                    # === No-resurrection + фильтр 2 кадра ===
+                    if (orig_id not in last_seen_frame) or (frame_idx - last_seen_frame[orig_id] > 1):
+                        temp_ids[orig_id] = (frame_idx, next_new_id)
                     else:
-                        area, radius = None, None
+                        if orig_id in temp_ids:
+                            start_frame, tentative_id = temp_ids[orig_id]
+                            if frame_idx - start_frame == 1:
+                                id_map[orig_id] = tentative_id
+                                next_new_id += 1
+                                temp_ids.pop(orig_id, None)  # перенос в постоянные
+                            elif frame_idx - start_frame > 1 and orig_id not in id_map:
+                                temp_ids.pop(orig_id, None)  # выкидываем
 
-                #udpating records array 
-                    records.append({"id": obj_id, "frame": frame_idx, "cx": cx, "cy": cy, "area": area, "eq_radius": radius})
+                    last_seen_frame[orig_id] = frame_idx
 
-    except Exception as e:
-        print(f"Error on frame {frame_idx}: {e}")
-        exit()
+                    # Только постоянные ID идут в CSV
+                    if orig_id not in id_map:
+                        continue
 
-    #progress log
-    if total_frames > 0 and frame_idx % max(1, total_frames // 10) == 0:
-        percent = int(100 * frame_idx / total_frames)
-        print(f"{percent}% of frames processed")
+                    new_id = id_map[orig_id]
 
-    frame_idx += 1
+                    # === Площадь маски и эквивалентный радиус ===
+                    mask_img = np.zeros(frame.shape[:2], dtype=np.uint8)
+                    pts = np.int32([seg])
+                    cv2.fillPoly(mask_img, pts, 255)
 
-cap.release()
+                    area = cv2.countNonZero(mask_img)  # пиксели исходного кадра
+                    eq_radius = np.sqrt(area / np.pi)  # эквивалентный радиус
 
-if records:
-    try:
-        df = pd.DataFrame(records)
-        df.to_csv(OUTPUT_DIR, index=False)
-        print(f"Tracking results saved successfully to: {OUTPUT_DIR}")
-    except Exception as e:
-        print(f"Failed to save CSV: {e}")
-        exit()
-else:
-    print("No tracking data collected — CSV file was not created")
-    exit()
+                    data_records.append((new_id, frame_idx, eq_radius))
+
+        frame_idx += 1
+
+    cap.release()
+
+    # === Сохраняем CSV ===
+    df = pd.DataFrame(data_records, columns=["id", "frame", "eq_radius"])
+    csv_path = output_dir / f"{video_path.stem}_statistics.csv"
+    df.to_csv(csv_path, index=False)
+    print(f"Saved: {csv_path}")
+
+print("Processing complete.")
