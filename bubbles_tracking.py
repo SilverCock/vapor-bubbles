@@ -6,9 +6,9 @@ import torch
 from ultralytics import YOLO
 
 # Parameters
-MODEL_DIR = "C:\\Users\\knja3\\runs\\segment\\train6\\weights\\best.pt"
-VIDEO_DIR = "G:\\experement\\filtered\\2_wT_video\\2_wT_1.avi" #must load 200x200 video of fiber, not raw 1024x200 video
-OUTPUT_DIR = "G:\\experement\\result_stats\\2_wT_stat\\2_wT_1_stat.csv"
+MODEL_DIR = "best.pt"
+VIDEO_DIR = "2_wT_1.avi" 
+OUTPUT_DIR = "2_wT_1_stat.csv"
 
 model = YOLO(MODEL_DIR)
 
