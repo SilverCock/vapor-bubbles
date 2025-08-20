@@ -11,9 +11,9 @@ gaussian_sigma = 0
 sharpen_strength = 1.1
 
 # === Пути ===
-video_dir = Path(r"D:\\videos")        # Папка с входными AVI
-output_dir = Path(r"D:\\output_stats") # Папка для сохранения CSV
-model_path = Path(r"D:\\best.pt")      # Модель YOLO
+video_dir = Path(r"G:\\EXPERIMENT\\filtered\\8_wt")        # Папка с входными AVI
+output_dir = Path(r"G:\\EXPERIMENT\\result_stats\\35_t\\8_wt_stat") # Папка для сохранения CSV
+model_path = Path(r"C:\\Users\\knja3\\runs\\segment\\train6\\weights\\best.pt")      # Модель YOLO (train6)
 
 output_dir.mkdir(parents=True, exist_ok=True)
 

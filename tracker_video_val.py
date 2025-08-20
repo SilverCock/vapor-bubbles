@@ -4,14 +4,14 @@ from pathlib import Path
 from ultralytics import YOLO
 
 # === Параметры фильтров ===
-median_ksize = 3
+median_ksize = 5
 gaussian_ksize = (3, 3)
-gaussian_sigma = 0
+gaussian_sigma = 1
 sharpen_strength = 1.1
 
 # === Путь к видео и модели ===
-video_path = Path("G:\\EXPERIMENT\\filtered\\5_wt\\5_wt_35_1.avi")
-model_dir = Path("C:\\Users\\knja3\\runs\\segment\\train9\\weights\\best.pt")  # здесь папка с best.pt
+video_path = Path("G:\\EXPERIMENT\\filtered\\5_wt\\5_wt_35_2.avi")
+model_dir = Path("C:\\Users\\knja3\\runs\\segment\\train6\\weights\\best.pt")  # здесь папка с best.pt
 
 # === Загрузка модели ===
 model = YOLO(model_dir)
@@ -53,7 +53,7 @@ while True:
     frame_f = cv2.filter2D(frame_f, -1, kernel_sharpening)
 
     # --- YOLO tracking ---
-    results = model.track(frame_f, tracker="botsort.yaml", persist=True, verbose=False)
+    results = model.track(frame_f, tracker="botsort.yaml", persist=True, verbose=False, conf=0.7)
 
     if results and len(results) > 0:
         res = results[0]
@@ -64,7 +64,7 @@ while True:
                     continue
 
                 orig_id = int(tid)
-                
+
                 # --- No-resurrection ---
                 if (orig_id not in last_seen_frame) or (frame_idx - last_seen_frame[orig_id] > 1):
                     # Новый объект — сначала помещаем в temp_ids
