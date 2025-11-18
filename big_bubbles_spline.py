@@ -18,11 +18,11 @@ except RuntimeError:
 
 # --- Папки ---
 data_dirs = {
-    2: Path("G:/EXPERIMENT/result_stats/35_t/2_wt_stat"),
-    4: Path("G:/EXPERIMENT/result_stats/35_t/4_wt_stat"),
+    2: Path("/home/john/Downloads/statistics/35_t/2_wt_stat"),
+    4: Path("/home/john/Downloads/statistics/35_t/4_wt_stat"),
     # 5: Path("G:/EXPERIMENT/result_stats/35_t/5_wt_stat"),
-    6: Path("G:/EXPERIMENT/result_stats/35_t/6_wt_stat"),
-    8: Path("G:/EXPERIMENT/result_stats/35_t/8_wt_stat"),
+    6: Path("/home/john/Downloads/statistics/35_t/6_wt_stat"),
+    8: Path("/home/john/Downloads/statistics/35_t/8_wt_stat"),
 }
 
 frame_rate = 25000
@@ -42,20 +42,20 @@ for power, data_dir in data_dirs.items():
     values_by_thr = {thr: [] for thr in thresholds}
 
     for file in csv_files:
-        df = pd.read_csv(file)
-        if not {"id", "frame", "eq_radius"}.issubset(df.columns):
+        data = pd.read_csv(file)
+        if not {"id", "frame", "eq_radius"}.issubset(data.columns):
             continue
 
-        max_radius_df = df.groupby("id")["eq_radius"].max().reset_index()
-        first_frame, last_frame = df["frame"].min(), df["frame"].max()
+        max_radius = data.loc[data.groupby("id")["eq_radius"].idxmax(), ['id', 'frame', 'eq_radius']].reset_index(drop=True)
+        first_frame, last_frame = data["frame"].min(), data["frame"].max()
         duration_frames = last_frame - first_frame + 1
         if duration_frames <= 0:
             continue
         duration_seconds = duration_frames / frame_rate
 
         for thr in thresholds:
-            large_bubbles = max_radius_df[max_radius_df["eq_radius"] > thr]
-            norm_count = len(large_bubbles) / duration_seconds
+            large_bubbles = max_radius[max_radius["eq_radius"] >= thr]
+            norm_count = len(large_bubbles['id']) / duration_seconds
             values_by_thr[thr].append(norm_count)
 
     for thr in thresholds:
@@ -66,7 +66,7 @@ for power, data_dir in data_dirs.items():
             results[thr]["stds"].append(np.std(vals))
 
 # --- Построение ---
-plt.figure(figsize=(8, 6))
+plt.figure(figsize=(5.5, 5))
 
 for thr in thresholds:
     powers = np.array(results[thr]["powers"])
@@ -91,26 +91,26 @@ for thr in thresholds:
 
     # Область доверительного интервала
     plt.fill_between(xs, ys_lower, ys_upper,
-                     facecolor="none", edgecolor=st["color"],
-                     hatch=st["hatch"], alpha=0.3)
+                     facecolor=st['color'], alpha=0.2,
+                     #hatch=st["hatch"],
+                     #edgecolor=st["color"]
+                     )
 
-plt.xlim(0, 10)
+plt.xlim(1.9, 8.1)
 plt.ylim(bottom=0)
-# plt.yscale("log")
+plt.tick_params(axis='both', direction='in', length=5, width=0.5)
 
-if LATEX_ENABLED:
-    plt.xlabel(r'Laser power, W')
-    plt.ylabel(r'The number of bubbles formed per second')
-    plt.title(r'The bubble nucleation rate')
-else:
-    plt.xlabel("Laser power (W)")
-    plt.ylabel("Bubbles per second (log scale)")
-    plt.title("Large bubble formation vs laser power (spline-smoothed)")
+# plt.yscale("log")
+plt.xlabel(r'Laser power, W', fontsize=14)
+plt.ylabel(r'Number of bubbles per second, s$^{-1}$', fontsize=14)
+#plt.title(r'The bubble nucleation rate')
+
 
 plt.grid(True, linestyle=":", alpha=0.7, which="both")
+#plt.grid(False)
 plt.legend()
 
 plt.tight_layout()
-# plt.savefig("large_bubbles_spline.png", dpi=300, bbox_inches="tight")
-# plt.savefig("large_bubbles_spline_log.pdf", bbox_inches="tight")
+#plt.savefig("./pictures/large_bubbles.png", bbox_inches="tight")
+plt.savefig("./pictures/large_bubbles.pdf", dpi=600, bbox_inches="tight")
 plt.show()

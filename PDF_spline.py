@@ -17,18 +17,26 @@ except RuntimeError:
     LATEX_ENABLED = False
 
 # --- Параметры ---
-bin_width = 2
-bin_edges = np.arange(0, 81, bin_width)
-bin_centers = (bin_edges[:-1] + bin_edges[1:]) / 2
+bin_width_px = 5
+bin_edges_px = np.arange(0, 81, bin_width_px)
+bin_centers_px = (bin_edges_px[:-1] + bin_edges_px[1:]) / 2
 
-cutoff_x = 7.5
-fiber_radius = 15
+px_to_mm = 0.02
+
+bin_width = bin_width_px * px_to_mm
+
+frame_rate = 25000
+cutoff_x = 7.5 * px_to_mm
+fiber_radius = 15 * px_to_mm
+
+bin_edges = bin_edges_px * px_to_mm
+bin_centers = bin_centers_px * px_to_mm
 
 # --- Папки с данными ---
 data_dirs = {
-    "2 W": Path("G:/EXPERIMENT/result_stats/35_t/2_wt_stat"),
-    "5 W": Path("G:/EXPERIMENT/result_stats/35_t/5_wt_stat"),
-    "8 W": Path("G:/EXPERIMENT/result_stats/35_t/8_wt_stat"),
+    "2 W": Path("/home/john/Downloads/statistics/35_t/2_wt_stat"),
+    "5 W": Path("/home/john/Downloads/statistics/35_t/5_wt_stat"),
+    "8 W": Path("/home/john/Downloads/statistics/35_t/8_wt_stat"),
 }
 
 # --- Стили линий ---
@@ -38,7 +46,7 @@ styles = {
     "8 W": {"color": "brown", "linestyle": "-."},
 }
 
-plt.figure(figsize=(10, 6))
+plt.figure(figsize=(7, 4))
 
 for label, data_dir in data_dirs.items():
     csv_files = list(data_dir.glob("*.csv"))
@@ -50,6 +58,7 @@ for label, data_dir in data_dirs.items():
             continue
         
         max_radius_df = df.groupby("id")["eq_radius"].max().reset_index()
+        max_radius_df["eq_radius"] *= px_to_mm
 
         total_bubbles = df["id"].max()
         if total_bubbles <= 0:
@@ -73,14 +82,14 @@ for label, data_dir in data_dirs.items():
     plot_y = np.concatenate(([interp_mean], mean_dist[mask]))
 
     # --- Строим сглаженный кубический сплайн ---
-    spline = make_interp_spline(plot_x, plot_y, k=3)
+    spline = make_interp_spline(plot_x, plot_y, k=7)
     xs = np.linspace(plot_x.min(), plot_x.max(), 400)
     ys = spline(xs)
 
     st = styles[label]
     plt.plot(xs, ys, color=st["color"], linestyle=st["linestyle"], label=label)
 
-# --- Область неопределенности ---
+'''# --- Область неопределенности ---
 plt.axvspan(0, cutoff_x, color="grey", alpha=0.3)
 plt.axvline(x=cutoff_x, color="grey", linestyle="--", linewidth=1.2)
 # вертикальная подпись
@@ -90,28 +99,26 @@ plt.text(
     "Unresolved region",
     color="black", ha="center", va="center",
     rotation=90, fontsize=20, weight="bold"
-)
+)'''
 
 # --- Радиус оптоволокна ---
-plt.axvline(x=fiber_radius, color="black", linestyle="--", linewidth=1.2)
-plt.text(fiber_radius, -0.0075, r"$R_f$", ha="center", va="top", fontsize=12)
+plt.axvline(fiber_radius, color="black", linestyle="--", linewidth=1.0)
+plt.text(fiber_radius, -0.13, r"$R_f$", ha="center", va="top")
 
 # --- Настройки графика ---
-plt.xlim(0, bin_edges[-1])
+plt.xlim(cutoff_x+0.01, 1.4)
 plt.ylim(bottom=0)
+plt.tick_params(axis='both', direction='in', length=5, width=0.5)
 
-if LATEX_ENABLED:
-    plt.xlabel(r'Equivalent maximum bubble radius, pixel')
-    plt.ylabel(r'Probability density, $1/\mathrm{pixel}$')
-    plt.title(r' Cubic spline-smoothed bubble radius distributions at different laser powers')
-else:
-    plt.xlabel("Эквивалентный максимальный радиус пузыря (пиксели)")
-    plt.ylabel("Плотность вероятности (1/пиксель)")
-    plt.title("Bubble radius distribution function")
+
+plt.xlabel(r'Maximum bubble radius, mm', fontsize=14)
+plt.ylabel(r'Distribution function, mm$^{-1}$ s$^{-1}$', fontsize=14)
+#plt.title(r' Cubic spline-smoothed bubble radius distributions at different laser powers')
 
 plt.grid(True, linestyle=":", alpha=0.7)
-plt.legend(loc="upper right")
+plt.legend()
 
 plt.tight_layout()
-# plt.savefig("PDF_spline.png", dpi=300, bbox_inches="tight")
+#plt.savefig("./pictures/spline.png", dpi=300, bbox_inches="tight")
+plt.savefig("./pictures/distibution_spline.pdf", dpi=600, bbox_inches="tight")
 plt.show()
